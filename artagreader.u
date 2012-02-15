@@ -1,0 +1,24 @@
+/* vim:ft=cpp
+ *
+ * description : {{{
+ *	this script detect and display ARTags from a camera
+ *}}}
+ */
+
+loadModule("CamDriver/CamDriver.so");
+loadModule("ImageViewer/ImageViewer.so");
+loadModule("ARTagReader/ARTagReader.so");
+
+// camera
+	var cam         = CamDriver.new(0);
+	var camviewer   = ImageViewer.new("Reader");
+
+// artag
+	var artagreader = ARTagReader.new("../../ARTag/aruco-1.0.0-testdata/single/intrinsics.yml", 0.05);
+	artagreader.showOutput = true;
+	var artagviewer = ImageViewer.new("ARTag");
+
+// connectors
+	var connector  = camviewer.&inputImage   << cam.&outputImage;
+	var connector2 = artagreader.&inputImage << cam.&outputImage;
+	var connector3 = artagviewer.&inputImage << artagreader.&outputImage;
