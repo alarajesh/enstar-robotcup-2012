@@ -1,4 +1,8 @@
-#include "stdafx.h"
+#include <cv.h>
+#include <highgui.h>
+
+#include "./stdafx.h"
+#include "./algos.h"
 
 double angle(CvPoint* p1,CvPoint* p2,CvPoint* Centre)	//OK!
 {
@@ -18,12 +22,8 @@ double angle_bis(CvPoint* p1,CvPoint* p2,CvPoint* o1,CvPoint* o2)
 
 void afficher_contours()	//OK!
 {
-	unsigned int i=0,j;
+	unsigned int i = 0;
 	CvBox2D box;
-	CvPoint* point,*ptest;
-	CvPoint2D32f p;
-	double erreur,erreur2,err,taux;
-	double alpha, beta,gamma,epsilon,tmp1,tmp2;
 	cvCvtColor(edge,frame2,CV_GRAY2BGR);
 	for(i=0;i<List_Contours.size();++i)
 	{
@@ -39,6 +39,5 @@ void afficher_contours()	//OK!
 
 void vider_contours(void)
 {
-	int i;
 	List_Contours.clear();
 }

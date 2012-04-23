@@ -1,20 +1,27 @@
-#include "stdafx.h"
+#include <cv.h>
+#include <highgui.h>
+#include <cmath>
+
+#include "./stdafx.h"
+#include "./algos.h"
+#include "./params.h"
 /*
-	I.Curve Ellipse Extraction
-*/
+   I.Curve Ellipse Extraction
+   */
 //Etape 1:	Detection des contours dans l'image
 void premier_filtre(const CvArr* src, CvArr* dst,CvMemStorage *storage)
 {
 	cvCvtColor(src,dst,CV_BGR2GRAY);
 	cvCanny(dst,dst,90,180,3);  //les deux parametres choisis ici sont 100 et 150
 	cvFindContours( dst, storage, &contours, sizeof(CvContour),
-                CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0) ); //parametres à vérifier!!
+			CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0) ); //parametres à vérifier!!
 }
+
 //Etape 2:	Suppression des contours courts
 void line_seg_appr(CvMemStorage *storage)
 {
-	#define MIN_TOTAL 4
-	#define MIN_PIXEL 60
+#define MIN_TOTAL 4
+#define MIN_PIXEL 60
 	CvSeq* tmp=contours,*tmp2;
 	if(!contours)return;
 	//approximation des contours par des polygones
@@ -39,9 +46,9 @@ void curve_seg_appr(CvMemStorage *storage2)
 	double norme_cond;	//condition sur le rapport des normes
 	int i,j,n;
 
-	#define RT_point(i) (CvPoint*)cvGetSeqElem (tmp, (i)*RT_PAS)
+#define RT_point(i) (CvPoint*)cvGetSeqElem (tmp, (i)*RT_PAS)
 
-	for(j=0;j<List_Contours.size();++j)
+	for ( j = 0; j < (int) List_Contours.size(); ++j )
 	{
 		tmp=List_Contours[j];
 		n=tmp->total;
@@ -57,19 +64,19 @@ void curve_seg_appr(CvMemStorage *storage2)
 			p5=RT_point(i+2); // Om,n+2
 			norme_cond=RT_norme2(p2,p3)/RT_norme2(p4,p3);
 			//calcul des alphas
-			alpha1=angle(p2,p3,p1);
-			alpha2=angle(p2,p4,p1);
-			alpha3=angle(p4,p3,p5);
-			alpha4=angle(p4,p2,p5);
+			alpha1 = angle(p2,p3,p1);
+			alpha2 = angle(p2,p4,p1);
+			alpha3 = angle(p4,p3,p5);
+			alpha4 = angle(p4,p2,p5);
 			//calcul des betas
-			beta1=angle(p1,p3,p2);
-			beta2=angle(p4,p2,p3);
-			beta3=angle(p3,p5,p4);
+			beta1 = angle(p1,p3,p2);
+			beta2 = angle(p4,p2,p3);
+			beta3 = angle(p3,p5,p4);
 
 			if(	((alpha1*alpha2)<0 || (alpha3*alpha4)<0)
-			||	(abs(alpha1)>abs(alpha2) || abs(alpha3)>abs(alpha4))
-			||	((abs(beta1)-abs(beta2))>RT_TH || (abs(beta3)-abs(beta2))>RT_TH)
-			||	(norme_cond>RT_LENGTHCONDITION || norme_cond<1.0/RT_LENGTHCONDITION)  )
+					||	(abs(alpha1)>abs(alpha2) || abs(alpha3)>abs(alpha4))
+					||	((abs(beta1)-abs(beta2))>RT_TH || (abs(beta3)-abs(beta2))>RT_TH)
+					||	(norme_cond>RT_LENGTHCONDITION || norme_cond<1.0/RT_LENGTHCONDITION)  )
 			{
 				tmp2=cvSeqSlice(tmp,cvSlice(0,i*RT_PAS+1));
 				tmp3=cvSeqSlice(tmp,cvSlice(i*RT_PAS,n));
@@ -89,13 +96,13 @@ void curve_seg_appr(CvMemStorage *storage2)
 					List_Contours.erase (List_Contours.begin()+j);
 					j--;
 				}/*
-				printf("p:\t%d %d|%d %d|%d %d|%d %d|%d %d\n",p1->x,p1->y,p2->x,p2->y,p3->x,p3->y,p4->x,p4->y,p5->x,p5->y);
-				printf("alpha:\t%lf %lf %lf %lf\n",alpha1,alpha2,alpha3,alpha4);
-				printf("beta:\t%lf %lf %lf\n",beta1,beta2,beta3);
-				printf("norme %lf\n-----\n",norme_cond);
-				cvShowImage( "Ellipses Detection", frame2);
-				cvWaitKey(0);*/
-				
+					printf("p:\t%d %d|%d %d|%d %d|%d %d|%d %d\n",p1->x,p1->y,p2->x,p2->y,p3->x,p3->y,p4->x,p4->y,p5->x,p5->y);
+					printf("alpha:\t%lf %lf %lf %lf\n",alpha1,alpha2,alpha3,alpha4);
+					printf("beta:\t%lf %lf %lf\n",beta1,beta2,beta3);
+					printf("norme %lf\n-----\n",norme_cond);
+					cvShowImage( "Ellipses Detection", frame2);
+					cvWaitKey(0);*/
+
 				break;
 			}
 			//on passe au point suivant
@@ -105,8 +112,8 @@ void curve_seg_appr(CvMemStorage *storage2)
 }
 
 /*
-	II. Curve Grouping Approaches
-*/
+   II. Curve Grouping Approaches
+   */
 //Etape 1:	Neighborhood Curve Grouping
 
 void Neighborhood_curve_grouping(void)
@@ -114,20 +121,20 @@ void Neighborhood_curve_grouping(void)
 	int i,j;
 	int k1,k2;	//necessaires pour le calcul de Dmn
 	double dist;
-	vector<struct distance> D;
+	std::vector<struct distance> D;
 	struct distance D_tmp,D_min;
 	CvPoint p[4];	//extremités des deux contours (voir "l'algorithme1")
 	//defintion des macros
-	#define RT_acces_point(a,b)	(CvPoint*)cvGetSeqElem (List_Contours[(a)], (b))
-	#define RT_contour_debut(a) *RT_acces_point((a), 0)
-	#define RT_contour_fin(a) *RT_acces_point((a), List_Contours[(a)]->total-1)
-	#define RT_contour_deuxieme_point(a,b) *RT_acces_point((a),((b)==0?1:(List_Contours[(a)]->total-2)))
-	#define RT_MAX_DIST 60
-	#define RT_MINGRAD 20
+#define RT_acces_point(a,b)	(CvPoint*)cvGetSeqElem (List_Contours[(a)], (b))
+#define RT_contour_debut(a) *RT_acces_point((a), 0)
+#define RT_contour_fin(a) *RT_acces_point((a), List_Contours[(a)]->total-1)
+#define RT_contour_deuxieme_point(a,b) *RT_acces_point((a),((b)==0?1:(List_Contours[(a)]->total-2)))
+#define RT_MAX_DIST 60
+#define RT_MINGRAD 20
 
-	for(i=0;i<List_Contours.size();++i)
+	for( i = 0; i < (int) List_Contours.size(); ++i)
 	{
-		for(j=0;j<List_Contours.size();j++)
+		for( j = 0; j < (int) List_Contours.size(); j++)
 		{
 			if(j==i)continue;
 
@@ -183,7 +190,7 @@ void Neighborhood_curve_grouping(void)
 }
 
 void RT_grouper_arcs(int c1,int c2,int ext1,int ext2)	//ext1==0 pour indiquer que c'est l'extremité du debut de c1 qui est concerné
-														//et 1 si c'est la fin du contour qui se traite
+	//et 1 si c'est la fin du contour qui se traite
 {
 	CvPoint* p;
 	int i;	//!!! fuite de memoire: ne pas oublier de supprimer c2 avec cvClearSeq(List_Contours[c2])!
@@ -231,26 +238,25 @@ void RT_grouper_arcs(int c1,int c2,int ext1,int ext2)	//ext1==0 pour indiquer qu
 	}
 }
 
-
 void Global_curve_grouping(void)
 {
 	int i,j;
 	int k1,k2;	//necessaires pour le calcul de Dmn
 	double dist,d;
-	vector<struct distance> D;
-	struct distance D_tmp,D_min;
+	std::vector<struct distance> D;
+	struct distance D_tmp;
 	CvPoint p[4];	//extremités des deux contours (voir "l'algorithme1")
 	CvPoint O[2];
 	CvPoint C[2];
 	//defintion des macros
-	#define RT_acces_point(a,b)	(CvPoint*)cvGetSeqElem (List_Contours[(a)], (b))
-	#define RT_contour_debut(a) *RT_acces_point((a), 0)
-	#define RT_contour_fin(a) *RT_acces_point((a), List_Contours[(a)]->total-1)
-	#define RT_contour_deuxieme_point(a,b) *RT_acces_point((a),((b)==0?1:(List_Contours[(a)]->total-2)))
+#define RT_acces_point(a,b)	(CvPoint*)cvGetSeqElem (List_Contours[(a)], (b))
+#define RT_contour_debut(a) *RT_acces_point((a), 0)
+#define RT_contour_fin(a) *RT_acces_point((a), List_Contours[(a)]->total-1)
+#define RT_contour_deuxieme_point(a,b) *RT_acces_point((a),((b)==0?1:(List_Contours[(a)]->total-2)))
 
-	for(i=0;i<List_Contours.size();++i)
+	for( i = 0; i < (int) List_Contours.size(); ++i)
 	{
-		for(j=i+1;j<List_Contours.size();j++)
+		for( j = i+1; j < (int) List_Contours.size(); j++)
 		{
 			p[0]=RT_contour_debut(i);
 			p[1]=RT_contour_fin(i);
@@ -293,7 +299,7 @@ void Global_curve_grouping(void)
 		}
 		if(D.size())
 		{
-			for(j=0;j<D.size();++j)
+			for( j = 0; j < (int) D.size(); ++j )
 			{
 				RT_grouper_arcs(i,D[j].contour2,D[j].ext1,D[j].ext2);
 			}

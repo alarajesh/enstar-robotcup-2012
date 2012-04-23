@@ -4,7 +4,13 @@
 	Objectif: Déterminer les ellipsoides présents sur une image ainsi que leurs parametres(centre, a,b)
 */
 
-#include "stdafx.h"
+#include <sys/types.h>
+#include <cv.h>
+#include <highgui.h>
+
+#include "./stdafx.h"
+#include "./algos.h"
+#include "./params.h"
 
 //TODO: creer une liste(<vector> pour les contours
 	  //regarder du coté de CvSeqWriter
@@ -60,7 +66,7 @@ int main(int argc, char** argv)
 		vider_contours();
 	}
 	seconds=time(NULL)-seconds;
-	printf("\n-------\n\t%d \n",seconds);
+	printf("\n-------\n\t%d \n", (int) seconds);
 	//cvReleaseCapture( &capture );
 	vider_contours();
 	cvClearMemStorage( storage );

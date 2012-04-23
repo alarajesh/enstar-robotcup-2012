@@ -1,5 +1,9 @@
 #ifndef ALGOS_H
 #define ALGOS_H
+
+#include <cv.h>
+#include <vector>
+
 #include "stdafx.h"
 
 /*
@@ -10,7 +14,7 @@
 IplImage* frame,*frame2;
 IplImage* edge;
 CvSeq* contours;
-vector<CvSeq*> List_Contours;
+std::vector<CvSeq*> List_Contours;
 //
 #define RT_PAS 1	/*pas entre deux points successifs*/
 #define RT_TH 30

@@ -4,13 +4,13 @@ namespace cv {
 	typedef Vec<uchar, 1> Vec1b;
 };
 
-ImageViewer::ImageViewer(const std::string& name) /*{{{*/ :
+ImageViewer::ImageViewer(const std::string& name)  :
 	urbi::UObject (name)
 {
 	UBindFunction(ImageViewer, init);
-} /*}}}*/
+}
 
-void ImageViewer::init(std::string name) /*{{{*/
+void ImageViewer::init(std::string name)
 {
 	// binding
 	UBindVar(ImageViewer, inputImage);
@@ -30,9 +30,9 @@ void ImageViewer::init(std::string name) /*{{{*/
 	m_name = name;
 	urbi::UBinary color = selectedColor;
 	color.common.data = NULL;
-} /*}}}*/
+}
 
-void ImageViewer::show(urbi::UVar& source, int time_ms) /*{{{*/
+void ImageViewer::show(urbi::UVar& source, int time_ms)
 {
 	urbi::UBinary bin = source;
 	bin.allocated_ = true;
@@ -43,19 +43,19 @@ void ImageViewer::show(urbi::UVar& source, int time_ms) /*{{{*/
 			bin.image.data);
 	cv::imshow(m_name,image_tmp);
 	cv::waitKey(time_ms);
-} /*}}}*/
+}
 
-void ImageViewer::showImage(urbi::UVar& source) /*{{{*/
+void ImageViewer::showImage(urbi::UVar& source)
 {
 	show(source, 0);
-} /*}}}*/
+}
 
-void ImageViewer::onGetImage(urbi::UVar& source) /*{{{*/
+void ImageViewer::onGetImage(urbi::UVar& source)
 {
 	show(source, frameRate);
-} /*}}}*/
+}
 
-void ImageViewer::onMouse(int event, int x, int y, int flags, void* imView) /*{{{*/
+void ImageViewer::onMouse(int event, int x, int y, int flags, void* imView)
 {
 	if(event == CV_EVENT_LBUTTONUP)
 	{
@@ -74,7 +74,7 @@ void ImageViewer::onMouse(int event, int x, int y, int flags, void* imView) /*{{
 				<< (int)(*((cv::Vec3b*) color))[2] << ","
 				<< (int)(*((cv::Vec3b*) color))[3] << std::endl;
 		}
-		if (frametype == CV_8UC1) 
+		if (frametype == CV_8UC1)
 		{
 			color = new cv::Vec1b(inframe.at<cv::Vec1b>(x,y));
 			std::cout << (int)(*((cv::Vec1b*) color))[1] << std::endl;
@@ -82,9 +82,9 @@ void ImageViewer::onMouse(int event, int x, int y, int flags, void* imView) /*{{
 		delete bin.common.data;
 		bin.common.data = color;
 	}
-} /*}}}*/
+}
 
-int ImageViewer::openCVImageType(urbi::UImageFormat format) /*{{{*/
+int ImageViewer::openCVImageType(urbi::UImageFormat format)
 {
 	int frametype;
 	switch (format)

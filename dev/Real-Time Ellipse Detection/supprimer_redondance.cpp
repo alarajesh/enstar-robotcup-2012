@@ -1,7 +1,11 @@
-#include "stdafx.h"
-
 #define MIN_ERREUR 10
 #define MIN_OK 3
+
+#include <cv.h>
+#include <cmath>
+
+#include "./stdafx.h"
+#include "./algos.h"
 
 int mesure_erreur(CvSeq* S1,CvSeq* S2,int i)
 {
@@ -18,7 +22,7 @@ int mesure_erreur(CvSeq* S1,CvSeq* S2,int i)
 		t=(a*u+b*v)/(0.0+u*u+v*v);
 		if(t<0 || t>1)
 		{
-			erreur=sqrt(min(0.0+a*a+b*b,RT_norme2(p1,p)));
+			erreur=sqrt(std::min(0.0+a*a+b*b,RT_norme2(p1,p)));
 		}
 		else
 			erreur=abs(b*u-a*v)/sqrt(u*u+v*v+0.0);
@@ -67,7 +71,7 @@ fin_redondance:
 void supprimer_redondances(void)
 {
 	int i,j,redondance;
-	for(i=0;i<List_Contours.size();++i)
+	for( i = 0; i < (int) List_Contours.size(); ++i )
 	{
 		if(List_Contours[i]->total<5 || cvContourPerimeter(List_Contours[i])<20)
 		{
@@ -75,7 +79,7 @@ void supprimer_redondances(void)
 			i--;
 			continue;
 		}
-		for(j=0;j<List_Contours.size();++j)
+		for( j = 0; j < (int) List_Contours.size(); ++j )
 		{
 			if(i==j || List_Contours[j]->total<5 || cvContourPerimeter(List_Contours[j])<20)continue;
 			redondance=reperer_redondance(List_Contours[i],List_Contours[j]);
