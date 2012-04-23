@@ -1,0 +1,12 @@
+loadModule("CamDriver/CamDriver.so");
+var cam = CamDriver.new(0);
+
+loadModule("ImageViewer/ImageViewer.so");
+var viewer = ImageViewer.new("Camera");
+
+loadModule("CDDetector/CDDetector.so");
+var cddetect = CDDetector.new;
+
+var connector  = cddetect.&inputImage << cam.&outputImage;
+var coonector2 = viewer.&inputImage << cddetect.&outputImage;
+
