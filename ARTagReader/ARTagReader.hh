@@ -16,11 +16,11 @@ public:
 	int         update();
 
 private:
-	urbi::UVar outputImage;    // image
-	urbi::UVar inputImage;     // image
-	urbi::UVar markerSize;     // float
-	urbi::UVar markerPosition; // UList
-	urbi::UVar showOutput;     // bool
+	urbi::UVar outputImage;    // image    // output
+	urbi::UVar markerPosition; // UList    // output
+	urbi::UVar inputImage;     // image    // input
+	urbi::UVar markerSize;     // float    // input
+	urbi::UVar showOutput;     // bool     // input
 	aruco::CameraParameters camParam;
 	aruco::MarkerDetector markerDetector;
 	std::vector<aruco::Marker> markers;

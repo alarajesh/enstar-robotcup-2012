@@ -16,9 +16,9 @@ public:
 	int         update();
 
 private:
-	urbi::UVar markerPosition; // UList
-	urbi::UVar markerGroup;    // UList
-	urbi::UVar groupPosition;  // UList
+	urbi::UVar markerPosition; // UList   // input
+	urbi::UVar markerGroup;    // UList   // output
+	urbi::UVar groupPosition;  // UList   // output
 };
 
 #endif //IMAGEREADER_HH

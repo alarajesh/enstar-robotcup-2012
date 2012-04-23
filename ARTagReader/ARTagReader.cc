@@ -1,6 +1,8 @@
 #include "ARTagReader.hh"
 #include <fstream>
 
+#define PRINT_MARKERS
+
 ARTagReader::ARTagReader(const std::string& name) : /*{{{*/
 		urbi::UObject (name)
 {
@@ -89,10 +91,10 @@ int ARTagReader::update() /*{{{*/
 	} /*}}}*/
 
 	// print positionMarker {{{
-	/*
+	#ifdef PRINT_MARKERS
 		positionMarker.print(std::cout);
 		std::cout << std::endl;
-	*/
+	#endif
 	/*}}}*/
 
 	markerPosition = positionMarker;
@@ -101,7 +103,7 @@ int ARTagReader::update() /*{{{*/
 	delete position;
 	delete orientation;
 
-	if ((bool) showOutput)
+	if ((bool) showOutput) /*{{{*/
 	{
 		urbi::UBinary out;
 		out.type              = urbi::BINARY_IMAGE;
@@ -113,7 +115,7 @@ int ARTagReader::update() /*{{{*/
 		out.allocated_        = false;
 
 		outputImage = out;
-	}
+	} /*}}}*/
 	return 0;
 } /*}}}*/
 
