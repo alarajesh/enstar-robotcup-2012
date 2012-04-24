@@ -5,6 +5,20 @@
 #define PI 3.14159265358
 
 /*!
+ * \brief Node used for contour grouping
+ *
+ * This is used as a component of a std::vector to get the relation between contour
+ * sequences before grouping.
+ */
+typedef struct node
+{
+	std::vector< cv::Point >::iterator next_begin; ///< index of the first point to visit in the next part
+	std::vector< cv::Point >::iterator next_end;   ///< index of the last point to visit in the next part
+	size_type previous_position;                   ///< index of the previous contour part
+	size_type next_position;                       ///< index of the previous contour part
+} node;
+
+/*!
  * \brief Compute the angle between (center,pt_1)
  *        and (center,pt_2) lines.
  */
@@ -30,20 +44,6 @@ static float angle2( cv::Point pt_1, cv::Point pt_2,
 	std::complex< float > cpx2_( pt_2_.x, pt_2_.y );
 
 	return arg( ( cpx1 - cpx1_ ) / ( cpx2 - cpx2_ ) );
-}
-
-static std::vector< cv::Point > extract_vector(
-		std::vector< cv::Point >& ptVec,
-		int minRange, int maxRange )
-{
-	std::vector< cv::Point > res;
-
-	for ( int i = minRange; i < maxRange; ++i)
-	{
-		res.push_back( ptVec.at(i) );
-	}
-
-	return res;
 }
 
 CDDetector::CDDetector(const std::string& name) :
@@ -156,9 +156,9 @@ void CDDetector::firstFilter(const cv::Mat& src, cv::Mat& dst)
 	// convert in grayscale
 	cv::cvtColor( src, dst, CV_BGR2GRAY );
 
-#define THRESHOLD1 90
-#define THRESHOLD2 180
-#define APERTURE_SIZE 3
+#define THRESHOLD1 90    ///< cv::Canny parameter
+#define THRESHOLD2 180   ///< cv::Canny parameter
+#define APERTURE_SIZE 3  ///< cv::Canny parameter
 
 	// detect edges
 	cv::Canny( dst, dst, THRESHOLD1, THRESHOLD2, APERTURE_SIZE );
@@ -263,74 +263,86 @@ void CDDetector::curveSegmentation()
 
 void CDDetector::neighborhoodCurveGroup()
 {
-	std::vector< std::vector< cv::Point > >::iterator it1
-		= segm_contours.begin();
-	std::vector< std::vector< cv::Point > >::iterator it2
-		= segm_contours.begin();
-
 #define CONT_MAX_DIST 60
 
-	for ( ; it1 != segm_contours.end(); ++it1 )
+	for ( int i = 0 ; i < segm_contours.size(); ++i )
 	{
-		cv::Point m_cont1[2];
-		cv::Point m_cont2[2];
-		int m_extr1, m_extr2, m_int1, m_int2;
-		double m_mindist;
-		float m_angle = PI;
-		bool match_found = false;
+		node& current_node = nodes.at(i);
+		std::vector< cv::Point >& contour_i = segm_contours.at(i);
 
-		for ( ; it2 != segm_contours.end(); ++it2 )
+		// each pair is seen just one time
+		for (int j = i + 1; j < segm_contours.size(); ++j )
 		{
-			if ( it1 == it2 ) continue;
+			std::vector< cv::Point >& contour_j = segm_contours.at(j);
 
-			cv::Point cont1[2] = { it1->front(), it1->back() };
-			cv::Point cont2[2] = { it2->front(), it2->back() };
+			cv::Point cont1[2] = { contour_i.front(), contour_i.back() };
+			cv::Point cont2[2] = { contour_j.front(), contour_j.back() };
 
 			int extr1, extr2, int1, int2;
 
 			double dist, mindist = CONT_MAX_DIST;
 			float angle_;
 
-			for ( int i = 0; i < 2; ++i )
-				for ( int j = 0; j < 2; ++j )
+			for ( int k = 0; k < 2; ++i )
+				for ( int l = 0; l < 2; ++j )
 				{
-					dist = norm(cont1[i] - cont2[j]);
+					dist = norm(cont1[k] - cont2[k]);
 					if ( dist < mindist )
 					{
 						mindist = dist;
-						extr1   = i;
-						int1    = 1 - i;
-						extr2   = j;
-						int2    = 1 - j;
+						extr1   = k;
+						int1    = 1 - k;
+						extr2   = l;
+						int2    = 1 - k;
 					}
 				}
 
+			// if contours are enough near
 			if ( mindist < CONT_MAX_DIST )
 			{
 				// get the points after the two extremities
 				cont1[int1] = ( extr1 == 0 ) ?
-					it1->at(1) : it1->at(it1->size() - 2);
+					contour_i.at(1) :
+					contour_i.at(contour_i.size() - 2);
 				cont2[int2] = ( extr2 == 0 ) ?
-					it2->at(1) : it2->at(it2->size() - 2);
+					contour_j.at(1) :
+					contour_j.at(contour_j.size() - 2);
 
 				// process the angle between the two contours
 				angle_ = angle2( cont1[extr1], cont2[int2],
 						cont1[int1], cont2[extr2] );
 
-				if ( abs(angle_) < abs(m_angle) )
+				// if the contour i have the better continuity with the j one on the extr1 side
+				if ( abs(angle_) < abs(current_node.angle[extr1]) )
 				{
-					match_found = true;
-					m_angle     = angle_;
-					m_mindist   = mindist;
-					m_cont1[0]  = cont1[0];
-					m_cont1[1]  = cont1[1];
-					m_cont2[0]  = cont2[0];
-					m_cont2[1]  = cont2[1];
-					m_extr1     = extr1;
-					m_extr2     = extr2;
-					m_int1      = int1;
-					m_int2      = int2;
-					//TODO
+					// keep the results on the corresponding side
+					current_node.angle[extr1]      = angle_;
+					current node.dist[extr1]       = mindist;
+					current_node.link_index[extr1] = j;
+					current_node.link_side[extr1]  = extr2;
+				}
+			}
+		}
+
+		for ( side = 0; side < 2; ++side )
+		{
+			if ( current_node.assigned( side ) )
+			{
+				node& linked_node = current_node.linkedNode( side );
+				int linked_node_related_side = current_node.link_side[ side ];
+
+				// if the current_node is assigned at the left and that the left linked node
+				// is already assigned at the corresponding side => conflict
+				if ( linked_node.assigned( linked_node_related_side ) )
+				{
+					if ( current_node.angle[ side ] < linked_node.angle[ linked_node_related_side ] )
+					{
+						// TODO : change linked node related side arguments and linked to the linked...
+					}
+					else
+					{
+						current_node.unassign( side );
+					}
 				}
 			}
 		}
