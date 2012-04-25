@@ -2,22 +2,6 @@
 
 #include "CDDetector.hh"
 
-#define PI 3.14159265358
-
-/*!
- * \brief Node used for contour grouping
- *
- * This is used as a component of a std::vector to get the relation between contour
- * sequences before grouping.
- */
-typedef struct node
-{
-	std::vector< cv::Point >::iterator next_begin; ///< index of the first point to visit in the next part
-	std::vector< cv::Point >::iterator next_end;   ///< index of the last point to visit in the next part
-	size_type previous_position;                   ///< index of the previous contour part
-	size_type next_position;                       ///< index of the previous contour part
-} node;
-
 /*!
  * \brief Compute the angle between (center,pt_1)
  *        and (center,pt_2) lines.
@@ -67,6 +51,7 @@ void CDDetector::init()
 
 void CDDetector::onNewImage(urbi::UVar& source_)
 {
+	std::cout << "new image" << std::endl;
 	urbi::UBinary source = source_;
 
 	cv::Mat src(
@@ -86,6 +71,8 @@ void CDDetector::onNewImage(urbi::UVar& source_)
 	lineSegApprox();
 
 	curveSegmentation();
+
+	neighborhoodCurveGroup();
 
 #ifdef ON_TEST /*{*/
 #define LINE_COLOR (uchar) 255 ///< print contour in white
@@ -263,17 +250,34 @@ void CDDetector::curveSegmentation()
 
 void CDDetector::neighborhoodCurveGroup()
 {
+	Node default_node( nodes );
+	nodes = std::vector< Node >( segm_contours.size(), default_node );
+
 #define CONT_MAX_DIST 60
 
 	for ( int i = 0 ; i < segm_contours.size(); ++i )
 	{
-		node& current_node = nodes.at(i);
+		//std::cout << "i = " << i << std::endl;
+		Node& current_node = nodes.at(i);
 		std::vector< cv::Point >& contour_i = segm_contours.at(i);
+
+		if ( contour_i.empty() )
+		{
+			//std::cout << "empty contour at " << i << std::endl;
+			continue;
+		}
 
 		// each pair is seen just one time
 		for (int j = i + 1; j < segm_contours.size(); ++j )
 		{
+			//std::cout << "j = " << j << std::endl;
 			std::vector< cv::Point >& contour_j = segm_contours.at(j);
+
+			if ( contour_j.empty() )
+			{
+				//std::cout << "empty contour at " << j << std::endl;
+				continue;
+			}
 
 			cv::Point cont1[2] = { contour_i.front(), contour_i.back() };
 			cv::Point cont2[2] = { contour_j.front(), contour_j.back() };
@@ -283,17 +287,20 @@ void CDDetector::neighborhoodCurveGroup()
 			double dist, mindist = CONT_MAX_DIST;
 			float angle_;
 
-			for ( int k = 0; k < 2; ++i )
-				for ( int l = 0; l < 2; ++j )
+			// find the nearest extremities
+			for ( int k = 0; k < 2; ++k )
+				for ( int l = 0; l < 2; ++l )
 				{
-					dist = norm(cont1[k] - cont2[k]);
+					dist = norm( cont1[k] - cont2[l] );
+					//std::cout << "dist = " << dist << std::endl;
+
 					if ( dist < mindist )
 					{
 						mindist = dist;
 						extr1   = k;
 						int1    = 1 - k;
 						extr2   = l;
-						int2    = 1 - k;
+						int2    = 1 - l;
 					}
 				}
 
@@ -317,36 +324,51 @@ void CDDetector::neighborhoodCurveGroup()
 				{
 					// keep the results on the corresponding side
 					current_node.angle[extr1]      = angle_;
-					current node.dist[extr1]       = mindist;
+					current_node.dist[extr1]       = mindist;
 					current_node.link_index[extr1] = j;
 					current_node.link_side[extr1]  = extr2;
 				}
 			}
 		}
 
-		for ( side = 0; side < 2; ++side )
+		for ( int side = 0; side < 2; ++side )
 		{
+			// if a relation has been found
 			if ( current_node.assigned( side ) )
 			{
-				node& linked_node = current_node.linkedNode( side );
+				Node& linked_node = current_node.linkedNode( side );
 				int linked_node_related_side = current_node.link_side[ side ];
 
-				// if the current_node is assigned at the left and that the left linked node
-				// is already assigned at the corresponding side => conflict
+				// if the linked node is already linked with someone else at
+				// the corresponding side => conflict
 				if ( linked_node.assigned( linked_node_related_side ) )
 				{
+					// if current_node is better
 					if ( current_node.angle[ side ] < linked_node.angle[ linked_node_related_side ] )
 					{
-						// TODO : change linked node related side arguments and linked to the linked...
+						Node& linked_linked_node = linked_node.linkedNode( linked_node_related_side );
+
+						// remove link between linked_node and linked_linked_node
+						linked_linked_node.unassign( linked_node.link_side[ linked_node_related_side ] );
+
+						// link current_node and linked_node
+						linked_node.linkSide( linked_node_related_side, i, side );
 					}
-					else
+					else // if current_node is worst
 					{
 						current_node.unassign( side );
 					}
 				}
+				else // just link the two nodes
+				{
+					linked_node.linkSide( linked_node_related_side, i, side );
+				}
 			}
 		}
 	}
+
+	std::cout << "end of the world" << std::endl;
+	// TODO : process assembly
 }
 
 UStart(CDDetector);
