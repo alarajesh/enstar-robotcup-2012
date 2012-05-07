@@ -2,8 +2,6 @@
 
 #include "CDDetector.hh"
 
-#define PI 3.14159265358
-
 /*!
  * \brief Compute the angle between (center,pt_1)
  *        and (center,pt_2) lines.
@@ -32,20 +30,6 @@ static float angle2( cv::Point pt_1, cv::Point pt_2,
 	return arg( ( cpx1 - cpx1_ ) / ( cpx2 - cpx2_ ) );
 }
 
-static std::vector< cv::Point > extract_vector(
-		std::vector< cv::Point >& ptVec,
-		int minRange, int maxRange )
-{
-	std::vector< cv::Point > res;
-
-	for ( int i = minRange; i < maxRange; ++i)
-	{
-		res.push_back( ptVec.at(i) );
-	}
-
-	return res;
-}
-
 CDDetector::CDDetector(const std::string& name) :
 		urbi::UObject (name)
 {
@@ -67,6 +51,7 @@ void CDDetector::init()
 
 void CDDetector::onNewImage(urbi::UVar& source_)
 {
+	std::cout << "new image" << std::endl;
 	urbi::UBinary source = source_;
 
 	cv::Mat src(
@@ -86,6 +71,8 @@ void CDDetector::onNewImage(urbi::UVar& source_)
 	lineSegApprox();
 
 	curveSegmentation();
+
+	neighborhoodCurveGroup();
 
 #ifdef ON_TEST /*{*/
 #define LINE_COLOR (uchar) 255 ///< print contour in white
@@ -156,9 +143,9 @@ void CDDetector::firstFilter(const cv::Mat& src, cv::Mat& dst)
 	// convert in grayscale
 	cv::cvtColor( src, dst, CV_BGR2GRAY );
 
-#define THRESHOLD1 90
-#define THRESHOLD2 180
-#define APERTURE_SIZE 3
+#define THRESHOLD1 90    ///< cv::Canny parameter
+#define THRESHOLD2 180   ///< cv::Canny parameter
+#define APERTURE_SIZE 3  ///< cv::Canny parameter
 
 	// detect edges
 	cv::Canny( dst, dst, THRESHOLD1, THRESHOLD2, APERTURE_SIZE );
@@ -263,78 +250,125 @@ void CDDetector::curveSegmentation()
 
 void CDDetector::neighborhoodCurveGroup()
 {
-	std::vector< std::vector< cv::Point > >::iterator it1
-		= segm_contours.begin();
-	std::vector< std::vector< cv::Point > >::iterator it2
-		= segm_contours.begin();
+	Node default_node( nodes );
+	nodes = std::vector< Node >( segm_contours.size(), default_node );
 
 #define CONT_MAX_DIST 60
 
-	for ( ; it1 != segm_contours.end(); ++it1 )
+	for ( int i = 0 ; i < segm_contours.size(); ++i )
 	{
-		cv::Point m_cont1[2];
-		cv::Point m_cont2[2];
-		int m_extr1, m_extr2, m_int1, m_int2;
-		double m_mindist;
-		float m_angle = PI;
-		bool match_found = false;
+		//std::cout << "i = " << i << std::endl;
+		Node& current_node = nodes.at(i);
+		std::vector< cv::Point >& contour_i = segm_contours.at(i);
 
-		for ( ; it2 != segm_contours.end(); ++it2 )
+		if ( contour_i.empty() )
 		{
-			if ( it1 == it2 ) continue;
+			//std::cout << "empty contour at " << i << std::endl;
+			continue;
+		}
 
-			cv::Point cont1[2] = { it1->front(), it1->back() };
-			cv::Point cont2[2] = { it2->front(), it2->back() };
+		// each pair is seen just one time
+		for (int j = i + 1; j < segm_contours.size(); ++j )
+		{
+			//std::cout << "j = " << j << std::endl;
+			std::vector< cv::Point >& contour_j = segm_contours.at(j);
+
+			if ( contour_j.empty() )
+			{
+				//std::cout << "empty contour at " << j << std::endl;
+				continue;
+			}
+
+			cv::Point cont1[2] = { contour_i.front(), contour_i.back() };
+			cv::Point cont2[2] = { contour_j.front(), contour_j.back() };
 
 			int extr1, extr2, int1, int2;
 
 			double dist, mindist = CONT_MAX_DIST;
 			float angle_;
 
-			for ( int i = 0; i < 2; ++i )
-				for ( int j = 0; j < 2; ++j )
+			// find the nearest extremities
+			for ( int k = 0; k < 2; ++k )
+				for ( int l = 0; l < 2; ++l )
 				{
-					dist = norm(cont1[i] - cont2[j]);
+					dist = norm( cont1[k] - cont2[l] );
+					//std::cout << "dist = " << dist << std::endl;
+
 					if ( dist < mindist )
 					{
 						mindist = dist;
-						extr1   = i;
-						int1    = 1 - i;
-						extr2   = j;
-						int2    = 1 - j;
+						extr1   = k;
+						int1    = 1 - k;
+						extr2   = l;
+						int2    = 1 - l;
 					}
 				}
 
+			// if contours are enough near
 			if ( mindist < CONT_MAX_DIST )
 			{
 				// get the points after the two extremities
 				cont1[int1] = ( extr1 == 0 ) ?
-					it1->at(1) : it1->at(it1->size() - 2);
+					contour_i.at(1) :
+					contour_i.at(contour_i.size() - 2);
 				cont2[int2] = ( extr2 == 0 ) ?
-					it2->at(1) : it2->at(it2->size() - 2);
+					contour_j.at(1) :
+					contour_j.at(contour_j.size() - 2);
 
 				// process the angle between the two contours
 				angle_ = angle2( cont1[extr1], cont2[int2],
 						cont1[int1], cont2[extr2] );
 
-				if ( abs(angle_) < abs(m_angle) )
+				// if the contour i have the better continuity with the j one on the extr1 side
+				if ( abs(angle_) < abs(current_node.angle[extr1]) )
 				{
-					match_found = true;
-					m_angle     = angle_;
-					m_mindist   = mindist;
-					m_cont1[0]  = cont1[0];
-					m_cont1[1]  = cont1[1];
-					m_cont2[0]  = cont2[0];
-					m_cont2[1]  = cont2[1];
-					m_extr1     = extr1;
-					m_extr2     = extr2;
-					m_int1      = int1;
-					m_int2      = int2;
-					//TODO
+					// keep the results on the corresponding side
+					current_node.angle[extr1]      = angle_;
+					current_node.dist[extr1]       = mindist;
+					current_node.link_index[extr1] = j;
+					current_node.link_side[extr1]  = extr2;
+				}
+			}
+		}
+
+		for ( int side = 0; side < 2; ++side )
+		{
+			// if a relation has been found
+			if ( current_node.assigned( side ) )
+			{
+				Node& linked_node = current_node.linkedNode( side );
+				int linked_node_related_side = current_node.link_side[ side ];
+
+				// if the linked node is already linked with someone else at
+				// the corresponding side => conflict
+				if ( linked_node.assigned( linked_node_related_side ) )
+				{
+					// if current_node is better
+					if ( current_node.angle[ side ] < linked_node.angle[ linked_node_related_side ] )
+					{
+						Node& linked_linked_node = linked_node.linkedNode( linked_node_related_side );
+
+						// remove link between linked_node and linked_linked_node
+						linked_linked_node.unassign( linked_node.link_side[ linked_node_related_side ] );
+
+						// link current_node and linked_node
+						linked_node.linkSide( linked_node_related_side, i, side );
+					}
+					else // if current_node is worst
+					{
+						current_node.unassign( side );
+					}
+				}
+				else // just link the two nodes
+				{
+					linked_node.linkSide( linked_node_related_side, i, side );
 				}
 			}
 		}
 	}
+
+	std::cout << "end of the world" << std::endl;
+	// TODO : process assembly
 }
 
 UStart(CDDetector);
