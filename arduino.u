@@ -1,0 +1,10 @@
+loadModule("Urduino/Urduino.so");
+var Global.urduino = Urduino.new("/dev/ttyACM0",9600);
+
+sleep(1s);
+
+urduino.openClamp;
+
+sleep(1s);
+
+urduino.readString;
