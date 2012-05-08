@@ -5,7 +5,7 @@
 
 
 /****  Définition des adresses des registres de la carte moteur  ****/
-#define MD25ADDRESS 0x58 // Adresse de la carte moteur
+#define MD25ADDRESS 0x5F // Adresse de la carte moteur
 #define SPEED1              (byte)0x00  // Adresse où est stockée la vitesse du moteur 1
 #define SPEED2              0x01        // Adresse où est stockée la vitesse du moteur 2
 #define ENCODER1            0x02        // Adresse du registre contenat la valeur de l'encodeur du moteur 1
