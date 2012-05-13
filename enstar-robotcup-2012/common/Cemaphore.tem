@@ -1,0 +1,12 @@
+// vim:ft=cpp
+
+template< typename type >
+Cemaphore< type >::Cemaphore()
+{
+}
+
+template< typename type >
+type Cemaphore< type >::operator=( const type& tp_ )
+{
+	return ( m_tp = tp_ );
+}

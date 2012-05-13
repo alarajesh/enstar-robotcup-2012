@@ -1,0 +1,80 @@
+// vim:ft=cpp
+
+template< class Class >
+Functor< Class >::Functor(
+		Class* anInstance,
+		void* (Class::*aFunction)(void*),
+		void* someArgs) :
+	instance(anInstance),
+	function(aFunction),
+	args(someArgs)
+{
+}
+
+template< class Class >
+Functor< Class >::~Functor()
+{
+}
+
+template< class Class >
+void* Functor< Class >::start()
+{
+	if ( instance != NULL && function != NULL )
+	{
+		return (instance->*function)( args );
+	}
+	else
+	{
+#ifdef ON_TEST
+		std::cout << "nothing to launch" << std::endl;
+#endif // ON_TEST
+		return NULL;
+	}
+}
+
+template< class Class >
+int Functor< Class >::startThreaded(
+		pthread_t* thr,
+		const pthread_attr_t* attr )
+{
+	return pthread_create( thr, attr, &Functor::apply, this );
+}
+
+template< class Class >
+void* Functor< Class >::apply( void* aFunctor )
+{
+	return ((Functor< Class >*) aFunctor)->start();
+}
+
+template< class Class >
+DestroyFunctor< Class >::DestroyFunctor(
+		Class* anInstance,
+		void* (Class::*aFunction)(void*),
+		void* someArgs,
+		bool threadedLaunch,
+		pthread_t* thr,
+		pthread_attr_t* attr) :
+	Functor< Class >( anInstance, aFunction, someArgs ),
+	threaded( threadedLaunch ),
+	thread( thr ),
+	attribute( attr )
+{
+}
+
+template< class Class >
+DestroyFunctor< Class >::~DestroyFunctor()
+{
+#ifdef ON_TEST
+	std::cout << "DestroyFunctor destroyed" << std::endl;
+#endif // ON_TEST
+	if ( threaded )
+	{
+		Functor< Class >::startThreaded( thread, attribute );
+		pthread_detach( *thread );
+	}
+	else
+	{
+		Functor< Class >::start();
+	}
+}
+
