@@ -1,0 +1,71 @@
+/* vim:ft=cpp
+ *
+ * description : {
+ *	this script detect and display ARTags from a camera
+ * }
+ */
+
+loadModule("CamDriver/CamDriver.so");
+loadModule("ImageViewer/ImageViewer.so");
+loadModule("ARTagReader/ARTagReader.so");
+loadModule("ImageWriter/ImageWriter.so");
+loadModule("Urduino/Urduino.so");
+loadModule("PosServo/PosServo.so");
+
+/////////////
+// ARDUINO //
+/////////////
+
+//var Global.urduino = Urduino.new("/dev/ttyACM2",9600);
+//var Global.urduino = Urduino.new("/dev/ttyACM1",9600);
+var Global.urduino = Urduino.new("/dev/ttyACM0",9600);
+
+sleep(1s);
+
+wall( "Arduino : OK" );
+
+//////////////
+// PosServo //
+//////////////
+
+var Global.posServo = PosServo.new;
+
+///////////
+// ARTAG //
+///////////
+
+// camera
+	var Global.cam = CamDriver.new(1);
+
+// image writer
+	var Global.writer = ImageWriter.new;
+	writer.folderName = "./tmp";
+	writer.fileName = "Artag_";
+
+// artag
+	var Global.artagreader = ARTagReader.new("../CamDriver/hercule_calibration.yml", 0.07);
+	artagreader.showOutput = true;
+
+// connectors
+	/* artagreader <-> camera */
+	var connector1 = artagreader.&inputImage << cam.&outputImage;
+	/* imagewriter <-> artagreader */
+	var connector2 = writer.&inputImage << artagreader.&outputImage;
+	connector2.minInterval = 1s;
+
+	var connector3 = posServo.&markerPositions << artagreader.&markerPositions;
+
+////////////
+// SCRIPT //
+////////////
+
+	artagreader.&markerPositions.notifyChange(
+		closure()
+		{
+			if ( artagreader.markerPositions != [] )
+			{
+				wall( artagreader.markerPositions );
+			}
+		}
+	);
+

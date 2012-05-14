@@ -1,8 +1,0 @@
-loadModule("ImageReader/ImageReader.so");
-var reader = ImageReader.new;
-reader.folderName = "./robotsim1/";
-
-loadModule("ImageViewer/ImageViewer.so");
-var viewer = ImageViewer.new("Reader");
-
-var connector = viewer.&inputImage << reader.&outputImage;

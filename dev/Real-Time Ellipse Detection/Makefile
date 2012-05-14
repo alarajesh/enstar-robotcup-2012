@@ -13,11 +13,11 @@ EXEC = ellipse
 all: $(EXEC)
 	@echo "Compilation done."
 
-$(EXEC): ellipse.o params.o
-	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
+$(EXEC):
+	$(CC) -o $@ caca.cpp $(CFLAGS) $(LDFLAGS)
 
-%.o:%.cpp
-	$(CC) -o $@ -c $< $(CFLAGS)
+#%.o:%.cpp
+#	$(CC) -o $@ -c $< $(CFLAGS)
 
 clean:
 	@echo "Cleaning"

@@ -72,7 +72,7 @@ void CDDetector::onNewImage(urbi::UVar& source_)
 
 	curveSegmentation();
 
-	neighborhoodCurveGroup();
+	//neighborhoodCurveGroup();
 
 #ifdef ON_TEST /*{*/
 #define LINE_COLOR (uchar) 255 ///< print contour in white
@@ -336,6 +336,7 @@ void CDDetector::neighborhoodCurveGroup()
 			// if a relation has been found
 			if ( current_node.assigned( side ) )
 			{
+				current_node.print();
 				Node& linked_node = current_node.linkedNode( side );
 				int linked_node_related_side = current_node.link_side[ side ];
 

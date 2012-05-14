@@ -114,14 +114,11 @@ float Kp_translation = 0.1;
 float Kd_translation = 0.15;
 int commande_rotation;    // commande calculée lors de l'asservissement en rotation
 int commande_translation; // commande calculée lors de l'asservissement en translation
-unsigned long time_begin; // Date du début de la période d'échantillonnage en cours
 
-unsigned long sampling_period_translation = 100;
-unsigned long sampling_period_rotation = 100;
+unsigned long sampling_period_translation = 150;
+unsigned long sampling_period_rotation = 150;
                           // Periode d'échantillonage (pour asservissement en rotation) en milliseconde
                           //   XXX : Si elle trop grande ou petite, l'asservissement devient instable
-long waitingTime;         // Temps d'attente de la fin de la période d'échantillonnage
-int  count ;              // Pour l'asservissement
 
 bool flag = false;        // Flag levé lorsque l'arrêt d'urgence est enclenché
                           //   (cf. attachInterrupt dans le setup() )
@@ -219,7 +216,6 @@ void setup()
 	orientation_current = 0;
 
 	delay(2000);
-	count = 0;
 	
 	DEBUG_MSG("Setup complete");
 }
@@ -556,8 +552,10 @@ void closeClamp()
 // 700 <---> dépacer de 30 cm
 void translate ( int x )
 {
+	unsigned long time_begin_loop = millis();
+	int count = 0;
+
 	mv_tr += x;
-	time_begin = millis();
 
 	/*
 	 * On entre dans la boucle d'asservissement.
@@ -578,7 +576,10 @@ void translate ( int x )
 		// la dernière mesure de l'orientation devient l'ancienne mesure
 		distance_old = distance_current;
 
-		waitingTime = ( (long) sampling_period_rotation - ( (long) millis() - (long) time_begin ) );
+		long waitingTime =
+			(long) sampling_period_rotation
+			- ( (long) millis() - (long) time_begin_loop );
+
 		DEBUG_MSG( String( "Waiting Time : " ) +
 				String( waitingTime ) );
 
@@ -599,14 +600,11 @@ void translate ( int x )
 		}
 
 		// début de la nouvelle période d'échantillonnage
-		time_begin = millis();
+		time_begin_loop = millis();
 
 		// Appel à la fonction qui va procéder à l'asservissment
 		setTranslation( mv_tr );
 	}
-
-	// L'asservissement est terminé, on remet le compteur à zéro
-	count = 0;
 }
 
 // Fonction appelée par translate : fait l'asservissement en translation
@@ -642,40 +640,38 @@ void setTranslation( int x )
 // Consigne en rotation du robot : x=458 <--> tourne de 90°
 void rotate( int x )
 {
+	long int time_begin_loop = millis();
+	int count = 0;
+
 	mv_rt += x;
 
 	DEBUG_MSG( String( "Count " ) + String( count ) );
-
-	time_begin = millis();
 
 	// Début de la boucle d'asservissement
 	// count : compteur qui permet de détecter quand le
 	// robot est stabilisé et donc que l'asservissement est termniné
 	// Si count < 5, alors on continue l'asservissement,sinon on sort de la boucle while
 	while( count <= 5 )
-	 {
+	{
 		/*
 		 * Si l'erreur en orientation par rapport
 		 * à la consigne est inférieure à une certaine
 		 * valeur, on incrémente count
 		 */
-		if ( ( getEncoder1( MD25ADDRESS_ROUES ) - getEncoder2( MD25ADDRESS_ROUES ) - mv_rt ) <= 10
-				&& ( getEncoder1( MD25ADDRESS_ROUES ) - getEncoder2( MD25ADDRESS_ROUES ) - mv_rt ) >= -10 )
+		int dEnc = getEncoder1( MD25ADDRESS_ROUES ) - getEncoder2( MD25ADDRESS_ROUES );
+
+		if ( ( dEnc - mv_rt ) <= 10 && ( dEnc - mv_rt ) >= -10 )
 		{
 			DEBUG_MSG( "Increase Count" );
 			++count;
 		}
 
-		DEBUG_MSG( String( "Gap : " ) +
-				String( getEncoder1( MD25ADDRESS_ROUES )
-					- getEncoder2( MD25ADDRESS_ROUES )
-					- mv_rt  )
-				);
+		DEBUG_MSG( String( "Gap : " ) + String( dEnc - mv_rt ) );
 
-		orientation_old = orientation_current; // la dernière mesure de l'orientation
-		                                       // devient l'ancienne mesure
+		long waitingTime =
+			(long) sampling_period_rotation
+			- ( (long) millis() - (long) time_begin_loop );
 
-		waitingTime = ( (long) sampling_period_rotation - ( (long) millis() - (long) time_begin ) );
 		DEBUG_MSG( String( "Waiting time : " ) + String( waitingTime ) );
 
 		// Si la période d'échantillonnage est trop courte...
@@ -695,22 +691,25 @@ void rotate( int x )
 		}
 
 		// Début de la nouvelle période d'échantillonnage
-		time_begin = millis();
+		time_begin_loop = millis();
 
 		// La fonction "rotate" va calculer la commande à envoyer aux moteurs
 		setRotation( mv_rt );
 	}
-
-	// L'asservissement est terminé, on remet le compteur à zéro
-	count = 0;
-  }
+}
 
 void setRotation( int x )
 {
+	orientation_old = orientation_current; // la dernière mesure de l'orientation
+	                                       // devient l'ancienne mesure
+
 	// L'orientation est orientation_current
 	orientation_current =
 		  getEncoder1( MD25ADDRESS_ROUES )
 		- getEncoder2( MD25ADDRESS_ROUES );
+
+	DEBUG_MSG( String( "Current orientation : " ) + String( orientation_current ) );
+	DEBUG_MSG( String( "Old     orientation : " ) + String( orientation_old ) );
 
 	// Calcul de la commande à partir de cette mesure
 	commande_rotation =
@@ -719,24 +718,24 @@ void setRotation( int x )
 
 	DEBUG_MSG( String( "commande rotation : ") + String( commande_rotation ) );
 
-	if ( commande_rotation <= 127 && commande_rotation >= -127 )
- 	{
+	if ( commande_rotation < 128 && commande_rotation > -128 )
+	{
 		setSpeed1(  commande_rotation + 128, MD25ADDRESS_ROUES );
 		setSpeed2( -commande_rotation + 128, MD25ADDRESS_ROUES );
- 	}
+	}
 	else if ( commande_rotation >= 128 )
- 	{
+	{
 		// Saturation de la vitesse
 		setSpeed1( 255, MD25ADDRESS_ROUES );
 		setSpeed2( 0, MD25ADDRESS_ROUES );
- 	}
+	}
 	else if ( commande_rotation <= -128 )
 	{
 		// Saturation de la vitesse
 		setSpeed1( 0, MD25ADDRESS_ROUES );
 		setSpeed2( 255, MD25ADDRESS_ROUES );
- 	}
-}  
+	}
+}
 
 void setAccelerationRate(int x, int address)
 {
@@ -815,7 +814,7 @@ byte getAccelerationRate( int address )
 	return acceleration;
 }
 
-int getEncoder1( int address )
+long getEncoder1( int address )
 {
 	// Motor 1 encoder reading
 	Wire.beginTransmission( address );
@@ -840,10 +839,10 @@ int getEncoder1( int address )
 
 	//sendCommand( address, ENCODER1, *value );
 
-	return *value;
+	return (long) *value;
 }
 
-int getEncoder2( int address )
+long getEncoder2( int address )
 {
 	// Motor 2 encoder reading
 	Wire.beginTransmission( address );
@@ -862,7 +861,7 @@ int getEncoder2( int address )
 
 	//sendCommand( address, ENCODER1, *value );
 
-	return *value;
+	return (long) *value;
 }
 
 byte getCurrent1( int address )

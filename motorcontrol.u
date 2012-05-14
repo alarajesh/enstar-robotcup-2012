@@ -1,4 +1,0 @@
-loadModule("./MotorController/MotorController.so");
-var motorcontroller = MotorController.new();
-
-//motorcontroller.testWrite();

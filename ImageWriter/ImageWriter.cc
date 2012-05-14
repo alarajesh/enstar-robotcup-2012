@@ -29,8 +29,8 @@ void ImageWriter::init()
 void ImageWriter::writeImage(urbi::UVar& source)
 {
 	std::ostringstream tmpName;
-	tmpName << (std::string) folderName << (std::string) fileName << 
-		(int) currentId << "." << (std::string) imageFormat;
+	tmpName << (std::string) folderName << "/" << (std::string) fileName
+		<< (int) currentId << "." << (std::string) imageFormat;
 	//std::cout << tmpName.str() << std::endl;
 	currentId = (int) currentId + 1;
 	writeSingleImage(source, tmpName.str());

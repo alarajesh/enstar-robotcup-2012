@@ -1,5 +1,5 @@
 loadModule("CamDriver/CamDriver.so");
-var cam = CamDriver.new;
+var cam = CamDriver.new(1);
 
 loadModule("ImageViewer/ImageViewer.so");
 var viewer = ImageViewer.new("Camera");
@@ -8,7 +8,7 @@ var connector = viewer.&inputImage << cam.&outputImage;
 
 loadModule("ImageWriter/ImageWriter.so");
 var writer = ImageWriter.new;
-writer.folderName = "./test/";
+writer.folderName = "./test";
 
 var connector2 = writer.&inputImage << cam.&outputImage;
 connector2.minInterval = 0.5s;

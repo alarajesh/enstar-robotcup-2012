@@ -2,16 +2,18 @@
 # _ UPATH: For your urbi install bin (for umake)
 
 
-UPATH=/usr/local/urbi
+UPATH = /usr/local/urbi
 
-BIN_SHARED=Urduino
+BIN_SHARED = Urduino
 
-BIN_SRC=arduino.cc Urduino.cc
+BIN_SRC = $(wildcard *.cc)
 
 EXTRA_LDFLAGS = \
 
 EXTRA_CPPFLAGS = \
-	-posix -Wall -m32
+	-posix -Wall -m32 \
+	-I. \
+	-I../common
 UMAKE_ENV = \
 	EXTRA_LDFLAGS="$(EXTRA_LDFLAGS)"  \
 	EXTRA_CPPFLAGS="$(EXTRA_CPPFLAGS) -O2 -w"

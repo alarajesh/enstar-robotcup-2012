@@ -1,7 +1,0 @@
-loadModule("CamDriver/CamDriver.so");
-var cam = CamDriver.new(1);
-
-loadModule("ImageViewer/ImageViewer.so");
-var viewer = ImageViewer.new("Camera");
-
-var connector = viewer.&inputImage << cam.&outputImage;

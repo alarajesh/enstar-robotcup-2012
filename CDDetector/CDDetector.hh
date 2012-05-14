@@ -53,6 +53,14 @@ class Node
 			dist[side]         = hangedNode.dist[ hangedSide ];
 		}
 
+		void print()
+		{
+			std::cout << "angle : (" << angle[1] << ", " << angle[2] << ")" << std::endl;
+			std::cout << "distance : (" << dist[1] << ", " << dist[2] << ")" << std::endl;
+			std::cout << "link_ind : (" << link_index[1] << ", " << link_index[2] << ")" << std::endl;
+			std::cout << "link_side : (" << link_side[1] << ", " << link_side[2] << ")" << std::endl;
+		}
+
 		float angle[2];    // angle between the node and the related
 		float dist[2];     // distance between the node and the related
 		int link_index[2]; // place of the related nodes

@@ -2,7 +2,10 @@
 # define URDUINO_HH
 
 #include <urbi/uobject.hh>
+#include <pthread.h>
 #include "arduino.hh"
+#include "Functor.hh"
+#include "Cemaphore.hh"
 
 #define BEGIN_TRANSMISSION (uint8_t) '\001'
 #define END_TRANSMISSION   (uint8_t) '\004'
@@ -10,11 +13,25 @@
 class Urduino: public urbi::UObject, public Arduino
 {
 	public:
-		Urduino(const std::string &n);
+		Urduino( const std::string &n );
 
-		int init(std::string serialport, int baudrate);
+		int init( std::string serialport, int baudrate );
 
-		std::string readString();
+		void rotate( ufloat rad );
+
+		void translate( ufloat meters );
+
+		void openClamp();
+
+		void closeClamp();
+
+		urbi::UList getDPosition( bool resetDiff=true );
+
+	private:
+		/*!
+		 * brief Loop which listen the serial port and interpret the command received.
+		 */
+		void* listenPort( void* unused );
 
 		/*!
 		 * \brief Send command to the Arduino
@@ -25,13 +42,17 @@ class Urduino: public urbi::UObject, public Arduino
 		 */
 		void writeCommand( int type, int id, int value );
 
-		void rotate( ufloat rad );
+		// diffential of position and rotation
+		Cemaphore < std::complex< float > > dposition;
+		Cemaphore < float > dangle;
 
-		void translate( ufloat meters );
+		// Cumulate position and rotation
+		Cemaphore < std::complex< float > > position;
+		Cemaphore < float > angle;
 
-		void openClamp();
-
-		void closeClamp();
+		// arduino listening stuff
+		Functor< Urduino > listeningFunctor;
+		pthread_t listeningThread;
 };
 
 #endif

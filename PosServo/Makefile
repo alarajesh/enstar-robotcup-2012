@@ -4,14 +4,17 @@
 
 UPATH = /usr/local/urbi
 
-BIN_SHARED = Urduino
+BIN_SHARED = PosServo
 
 BIN_SRC = $(wildcard *.cc)
 
 EXTRA_LDFLAGS = \
 
 EXTRA_CPPFLAGS = \
-	-posix -Wall -m32
+	-posix -Wall -m32 \
+	-I. \
+	-I../common \
+	-I /usr/local/urbi/include/boost
 UMAKE_ENV = \
 	EXTRA_LDFLAGS="$(EXTRA_LDFLAGS)"  \
 	EXTRA_CPPFLAGS="$(EXTRA_CPPFLAGS) -O2 -w"

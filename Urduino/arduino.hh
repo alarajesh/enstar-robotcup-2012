@@ -51,7 +51,7 @@ class Arduino
 		 */
 		int writeByte( uint8_t b);
 
-	private:
+	protected:
 		int mFd;//file descriptor
 };
 
