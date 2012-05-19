@@ -16,9 +16,10 @@ loadModule("PosServo/PosServo.so");
 // ARDUINO //
 /////////////
 
-//var Global.urduino = Urduino.new("/dev/ttyACM2",9600);
+//var Global.urduino = Urduino.new("/dev/ttyACM3",9600);
 //var Global.urduino = Urduino.new("/dev/ttyACM1",9600);
-var Global.urduino = Urduino.new("/dev/ttyACM0",9600);
+
+///////var Global.urduino = Urduino.new("/dev/ttyACM0",9600);
 
 sleep(1s);
 
@@ -59,6 +60,7 @@ var Global.posServo = PosServo.new;
 // SCRIPT //
 ////////////
 
+	/*
 	artagreader.&markerPositions.notifyChange(
 		closure()
 		{
@@ -68,4 +70,14 @@ var Global.posServo = PosServo.new;
 			}
 		}
 	);
+	*/
 
+	at( urduino.endTranslation? )
+	{
+		wall("end traslation");
+	};
+
+	at( urduino.endRotation? )
+	{
+		wall("end rotation");
+	};

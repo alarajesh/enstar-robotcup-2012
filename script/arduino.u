@@ -1,7 +1,7 @@
 loadModule("Urduino/Urduino.so");
-var Global.urduino = Urduino.new("/dev/ttyACM3",9600);
+//var Global.urduino = Urduino.new("/dev/ttyACM3",9600);
 //var Global.urduino = Urduino.new("/dev/ttyACM1",9600);
-//var Global.urduino = Urduino.new("/dev/ttyACM0",9600);
+var Global.urduino = Urduino.new("/dev/ttyACM0",9600);
 
 sleep(1s);
 
